@@ -1,0 +1,88 @@
+generator client {
+  provider = "prisma-client-js"
+  output   = "../generated/prisma"
+}
+
+datasource db {
+  provider = "postgresql"
+  url      = env("DATABASE_URL")
+}
+
+model member_roles {
+  member_id BigInt
+  role      role_enum
+  members   members   @relation(fields: [member_id], references: [member_id], onDelete: Cascade)
+
+  @@id([member_id, role])
+}
+
+model members {
+  member_id         BigInt              @id @default(autoincrement())
+  generation        Int
+  name              String
+  member_roles      member_roles[]
+  song_participants song_participants[]
+
+  @@index([generation])
+  @@index([name])
+}
+
+model performances {
+  performance_id    BigInt              @id @default(autoincrement())
+  title             String?
+  event_date        DateTime?
+  label             String?
+  setlist_items     setlist_items[]
+  song_participants song_participants[]
+
+  @@index([label])
+}
+
+model setlist_items {
+  performance_id BigInt
+  part_no        Int
+  position_no    Int
+  song_id        BigInt
+  performances   performances @relation(fields: [performance_id], references: [performance_id], onDelete: Cascade)
+  songs          songs        @relation(fields: [song_id], references: [song_id])
+
+  @@id([performance_id, part_no, position_no])
+}
+
+model song_participants {
+  performance_id BigInt
+  song_id        BigInt
+  member_id      BigInt
+  role           role_enum
+  members        members      @relation(fields: [member_id], references: [member_id], onDelete: Cascade)
+  performances   performances @relation(fields: [performance_id], references: [performance_id], onDelete: Cascade)
+  songs          songs        @relation(fields: [song_id], references: [song_id], onDelete: Cascade)
+
+  @@id([performance_id, song_id, member_id, role])
+  @@index([member_id])
+  @@index([performance_id, song_id])
+}
+
+model songs {
+  song_id           BigInt              @id @default(autoincrement())
+  type              song_type_enum
+  title             String
+  composer          String?
+  setlist_items     setlist_items[]
+  song_participants song_participants[]
+
+  @@index([title])
+}
+
+enum role_enum {
+  V
+  G
+  B
+  D
+  K
+}
+
+enum song_type_enum {
+   자작곡 @map("자작곡")
+   기성곡 @map("기성곡")
+}
