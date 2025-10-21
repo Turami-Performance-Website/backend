@@ -1,3 +1,10 @@
+// Prisma는 항상 아래 순서로 작동해야 한다. 👇
+// 1️⃣ npx prisma generate — @prisma/client 코드 업데이트 (node_modules/@prisma/client 폴더 안의 PrismaClient 코드를 새로 빌드)
+// 2️⃣ npx prisma migrate dev — DB (스키마) 업데이트
+// 3️⃣ npx prisma db seed — 시드 데이터 삽입
+//
+// 🔹 시각화 : npx prisma studio 
+
 generator client {
   provider = "prisma-client-js"
   output   = "../generated/prisma"
@@ -8,81 +15,129 @@ datasource db {
   url      = env("DATABASE_URL")
 }
 
-model member_roles {
-  member_id BigInt
-  role      role_enum
-  members   members   @relation(fields: [member_id], references: [member_id], onDelete: Cascade)
+//
+// ========== ENUMS ==========
+//
 
-  @@id([member_id, role])
+enum role_enum {
+  V // Vocal
+  G // Guitar
+  B // Bass
+  D // Drum
+  K // Keyboard
 }
 
-model members {
-  member_id         BigInt              @id @default(autoincrement())
-  generation        Int
-  name              String
-  member_roles      member_roles[]
-  song_participants song_participants[]
+enum performance_status_enum {
+  DRAFT // 관리자만 조회 가능 (임시저장)
+  PUBLISHED // client에서도 조회 가능 (게시)
+}
+
+enum song_type_enum {
+  자작곡 @map("자작곡")
+  기성곡 @map("기성곡")
+}
+
+//
+// ========== MODELS ==========
+//
+
+// 1. 부원
+model Members {
+  member_id  BigInt  @id @default(autoincrement())
+  generation Int
+  name       String
+  note       String? // null 허용 (비고)
+
+  PerformanceParticipants PerformanceParticipants[]
+  SongParticipants        SongParticipants[]
+  StaffAssignments        StaffAssignments[]
 
   @@index([generation])
   @@index([name])
 }
 
-model performances {
-  performance_id    BigInt              @id @default(autoincrement())
-  title             String?
-  event_date        DateTime?
-  label             String?
-  setlist_items     setlist_items[]
-  song_participants song_participants[]
+// 2. 공연 
+model Performances {
+  performance_id BigInt                  @id @default(autoincrement())
+  title          String?
+  event_date     DateTime?
+  label          String?
+  status         performance_status_enum @default(DRAFT) // 공연 웹사이트 배포 여부
+
+  SetlistItems            SetlistItems[]
+  SongParticipants        SongParticipants[]
+  PerformanceParticipants PerformanceParticipants[]
+  StaffAssignments        StaffAssignments[]
 
   @@index([label])
 }
 
-model setlist_items {
+// 공연 참여자
+model PerformanceParticipants {
+  performance_id BigInt
+  member_id      BigInt
+
+  Performances   Performances @relation(fields: [performance_id], references: [performance_id], onDelete: Cascade)
+  Members        Members      @relation(fields: [member_id], references: [member_id], onDelete: Cascade)
+
+  @@id([performance_id, member_id])
+  @@map("performance_participants")
+}
+
+// 연출
+model StaffAssignments {
+  performance_id BigInt
+  member_id      BigInt
+
+  Performances Performances @relation(fields: [performance_id], references: [performance_id], onDelete: Cascade)
+  Members      Members      @relation(fields: [member_id], references: [member_id], onDelete: Cascade)
+
+  @@id([performance_id, member_id])
+  @@map("staff_assignments")
+}
+
+// 3. 곡
+model Songs {
+  song_id          BigInt             @id @default(autoincrement())
+  type             song_type_enum
+  title            String
+  composer         String?
+
+  SetlistItems     SetlistItems[]
+  SongParticipants SongParticipants[]
+
+  @@index([title])
+}
+
+
+
+
+// 셋리 - 곡
+model SetlistItems {
   performance_id BigInt
   part_no        Int
   position_no    Int
   song_id        BigInt
-  performances   performances @relation(fields: [performance_id], references: [performance_id], onDelete: Cascade)
-  songs          songs        @relation(fields: [song_id], references: [song_id])
+
+  Performances   Performances @relation(fields: [performance_id], references: [performance_id], onDelete: Cascade)
+  Songs          Songs        @relation(fields: [song_id], references: [song_id], onDelete: Cascade)
 
   @@id([performance_id, part_no, position_no])
 }
 
-model song_participants {
+// 곡별 참여자 - 셋리 삭제 시 '곡별 참여자' 삭제시켜야 함.
+model SongParticipants {
   performance_id BigInt
   song_id        BigInt
   member_id      BigInt
   role           role_enum
-  members        members      @relation(fields: [member_id], references: [member_id], onDelete: Cascade)
-  performances   performances @relation(fields: [performance_id], references: [performance_id], onDelete: Cascade)
-  songs          songs        @relation(fields: [song_id], references: [song_id], onDelete: Cascade)
+
+  Members        Members      @relation(fields: [member_id], references: [member_id], onDelete: Cascade)
+  Performances   Performances @relation(fields: [performance_id], references: [performance_id], onDelete: Cascade)
+  Songs          Songs        @relation(fields: [song_id], references: [song_id], onDelete: Cascade)
 
   @@id([performance_id, song_id, member_id, role])
   @@index([member_id])
   @@index([performance_id, song_id])
 }
 
-model songs {
-  song_id           BigInt              @id @default(autoincrement())
-  type              song_type_enum
-  title             String
-  composer          String?
-  setlist_items     setlist_items[]
-  song_participants song_participants[]
-
-  @@index([title])
-}
-
-enum role_enum {
-  V
-  G
-  B
-  D
-  K
-}
-
-enum song_type_enum {
-   자작곡 @map("자작곡")
-   기성곡 @map("기성곡")
-}
