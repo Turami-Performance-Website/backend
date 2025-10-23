@@ -1,7 +1,7 @@
 // Prisma는 항상 아래 순서로 작동해야 한다. 👇
-// 1️⃣ npx prisma generate — @prisma/client 코드 업데이트 (node_modules/@prisma/client 폴더 안의 PrismaClient 코드를 새로 빌드)
-// 2️⃣ npx prisma migrate dev — DB (스키마) 업데이트
-// 3️⃣ npx prisma db seed — 시드 데이터 삽입
+// 1️⃣ npx prisma generate : @prisma/client 코드 업데이트 (node_modules/@prisma/client 폴더 안의 PrismaClient 코드를 새로 빌드)
+// 2️⃣ npx prisma migrate dev --name  : DB (스키마) 업데이트 (--name 뒤에는 변경사항 기록하는 거임)
+// 3️⃣ npx prisma db seed : 시드 데이터 삽입
 //
 // 🔹 시각화 : npx prisma studio 
 
@@ -40,6 +40,17 @@ enum song_type_enum {
 //
 // ========== MODELS ==========
 //
+
+// 0. admin 로그인
+model AdminUsers {
+  admin_id   BigInt   @id @default(autoincrement())
+  email      String   @unique
+  password   String   // bcrypt로 암호화된 비밀번호
+  name       String
+  created_at DateTime @default(now())
+  updated_at DateTime @updatedAt
+}
+
 
 // 1. 부원
 model Members {
