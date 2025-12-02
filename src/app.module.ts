@@ -3,11 +3,14 @@ import { AppController } from './app.controller';
 import { AppService } from './app.service';
 
 import { PrismaModule } from './prisma/prisma.module';
-import { MemberModule } from './member/member.module';
+
+import { MemberModule } from './admin/member/member.module';
+// import { PerformanceModule} from './admin/performance/performance.module';
+// import { SongModule} from './admin/song/song.module';
 
 
 @Module({
-  imports: [PrismaModule, MemberModule],
+  imports: [PrismaModule, MemberModule], 
   controllers: [AppController],
   providers: [AppService],
 })

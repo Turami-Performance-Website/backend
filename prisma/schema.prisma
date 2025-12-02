@@ -6,13 +6,13 @@
 // 🔹 시각화 : npx prisma studio 
 
 generator client {
-  provider = "prisma-client-js"
+  provider = "prisma-client"
   output   = "../generated/prisma"
+  moduleFormat = "cjs"              // Prisma 7 + Nest 환경 이라서 추가
 }
 
 datasource db {
   provider = "postgresql"
-  url      = env("DATABASE_URL")
 }
 
 //
